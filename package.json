@@ -19,5 +19,17 @@
   "bugs": {
     "url": "https://github.com/ywemay/api-crud/issues"
   },
-  "homepage": "https://github.com/ywemay/api-crud#readme"
+  "homepage": "https://github.com/ywemay/api-crud#readme",
+  "peerDependencies": {
+    "mongoose": "^6.3.8"
+  },
+  "devDependencies": {
+    "jest": "^28.1.1",
+    "mongoose": "^6.3.8"
+  },
+  "dependencies": {
+    "ywemay-api-send": "^1.0.1",
+    "ywemay-api-utils": "^1.0.2",
+    "ywemay-api-validate": "^1.0.0"
+  }
 }
