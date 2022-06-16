@@ -1,0 +1,23 @@
+{
+  "name": "ywemay-api-crud",
+  "version": "0.0.0",
+  "description": "Functions to build crud operations for controllers",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/**/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ywemay/api-crud.git"
+  },
+  "keywords": [
+    "crud",
+    "api"
+  ],
+  "author": "Cibuc Dorian",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ywemay/api-crud/issues"
+  },
+  "homepage": "https://github.com/ywemay/api-crud#readme"
+}
