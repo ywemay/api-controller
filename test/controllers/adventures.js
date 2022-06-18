@@ -20,7 +20,7 @@ const Adv = new Controller( {
     validators: {
       post: {
         name: yup.string().min(2).max(30).required(),
-        tags: yup.array().of(yup.string().min(1).max(30))
+        tags: yup.array().of(yup.object().shape({ id: yup.string().min(1).max(20)}))
       }
     }
   },

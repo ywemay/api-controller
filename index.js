@@ -1,7 +1,29 @@
 const mongoose = require('mongoose');
 const { reqPage, reqSort, keyFilter } = require("ywemay-api-utils");
 const { sendError, sendData, notFound } = require('ywemay-api-send');
-const validate = require("ywemay-api-validate");
+// const validate = require("ywemay-api-validate");
+
+const validate =  (schema) => async (req, res, next) => {
+  try {
+    const s = typeof schema === 'function' ? schema({req, res}) : schema;
+    if (s.schema !== undefined) {
+      console.log('Validating....')
+      const keys = Object.keys(req.body);
+      const unknownKeys = keys.filter(key => !s.keys.includes(key));
+      await s.schema.validate(req.body);
+      const keysSchema = yup.array(yup.string()
+        .oneOf(s.keys, 'Unknown keys: ' + unknownKeys.join(', ')));
+      await keysSchema.validate(keys);
+      console.log('Arrived gere......')
+      return next();
+    }
+    await s.validate(req.body);
+    next();
+  } catch (err) {
+    console.log(err.errors);
+    res.status(400).send(err);
+  }
+}
 
 const expand = (tags) => {
   if (!tags) return [];
@@ -24,7 +46,10 @@ class Controller {
 
   projections = {}
 
-  hooks = { normalise: false }
+  hooks = { 
+    expand: false,
+    reduce: false,
+  }
 
   constructor(params) {
     const { model, defaults, projections, getSearchFilter, hooks } = params;
@@ -48,14 +73,21 @@ class Controller {
     return security;
   }
 
-  normalizeItem = (item) => {
+  expandItem = (item) => {
     item = {
       id: item._id.toString(),
       ...item.toObject()
     }
     delete item._id;
-    if (typeof this.hooks?.normalize === 'function') {
-      item = this.hooks.normalize(item);
+    if (typeof this.hooks?.expand === 'function') {
+      item = this.hooks.expand(item);
+    }
+    return item;
+  }
+
+  reduceItem = (item) => {
+    if (typeof this.hooks?.reduce === 'function') {
+      item = this.hooks.reduce(item);
     }
     return item;
   }
@@ -68,7 +100,7 @@ class Controller {
       getSearchFilter,
       projection,
       getSecurity,
-      normalizeItem
+      expandItem
     } = this;
 
     const { page, skip, limit } = reqPage(req);
@@ -97,7 +129,7 @@ class Controller {
         .limit(limit)
         .sort(sort)
         .then((items) => {
-        res.data.items = items.map(v => normalizeItem(v));
+        res.data.items = items.map(v => expandItem(v));
         next();
       }).catch(err => sendError(res, err));
     }).catch(err => sendError(res, err));
@@ -115,7 +147,7 @@ class Controller {
       .select(projection.references)
       .then((items) => {
         if (!res.data) res.data = {};
-        res.data.items = items.map(v => normalizeItem(v));
+        res.data.items = items.map(v => expandItem(v));
         res.data.total = items.length;
         next();
       }).catch(err => sendError(res, err))
@@ -141,20 +173,24 @@ class Controller {
   }
 
   create = (req, res, next) => {
-    const { body, alter }= req; 
-    const { createItem, getSecurity, normalizeItem, defaults } = this;
+    const { createItem, getSecurity, expandItem, reduceItem, defaults } = this;
     if(getSecurity(res).post(req) === false) {
       return res.status(403).send();
     }
-    console.log('Here.......')
-    if (body.roles) body.roles = rolesReduce(body.roles);
-    const doValidate = validate(res.validators?.postSchema
-      || defaults.validators.post);
+
+    const validator = res.validators?.postSchema
+      || defaults.validators.post;
+    
+    const doValidate = validate(validator);
+    
+    const { body, alter } = req;
     doValidate(req, res, () => {
-      createItem({data: body, alter})
+      console.log('Validated.....');
+      createItem({data: reduceItem(body), alter})
         .then((item) => {
+          console.log('Created', item)
           res.data = {
-            createdItem: normalizeItem(item) 
+            createdItem: expandItem(item) 
           }
           next();
         })

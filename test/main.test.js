@@ -80,10 +80,10 @@ describe('Crud Controller Builder test', () => {
     }
     req.allowPost = true;
     Adv.create(req, res, () => {
-      console.log(res)
       res.state.should.be.eql(0);
       res.data.should.be.Object();
       done();
     })
+      console.log('Response', res)
   })
 })
