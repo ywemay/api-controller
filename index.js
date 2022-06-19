@@ -2,28 +2,28 @@ const mongoose = require('mongoose');
 const { reqPage, reqSort, keyFilter } = require("ywemay-api-utils");
 const { sendError, sendData, notFound } = require('ywemay-api-send');
 // const validate = require("ywemay-api-validate");
+const yup = require('yup');
 
-const validate =  (schema) => async (req, res, next) => {
-  try {
+/*
+const validate =  (req, res, schema) => {
+  return new Promise((resolve, reject) => {
+    console.log(typeof schema)
     const s = typeof schema === 'function' ? schema({req, res}) : schema;
     if (s.schema !== undefined) {
-      console.log('Validating....')
       const keys = Object.keys(req.body);
       const unknownKeys = keys.filter(key => !s.keys.includes(key));
-      await s.schema.validate(req.body);
       const keysSchema = yup.array(yup.string()
         .oneOf(s.keys, 'Unknown keys: ' + unknownKeys.join(', ')));
-      await keysSchema.validate(keys);
-      console.log('Arrived gere......')
-      return next();
+      s.schema.validate(req.body).then(() => {
+        keysSchema.validate(keys).then(() => resolve())
+      }).catch(err => {
+        console.error(err);
+        reject(); 
+      })
     }
-    await s.validate(req.body);
-    next();
-  } catch (err) {
-    console.log(err.errors);
-    res.status(400).send(err);
-  }
-}
+    else s.validate(req.body).then(resolve()).catch(err => reject(err));
+  })
+}*/
 
 const expand = (tags) => {
   if (!tags) return [];
@@ -31,7 +31,7 @@ const expand = (tags) => {
   return rez;
 }
 
-const reduce = (tags) => {
+const compact = (tags) => {
   if (!tags) return [];
   return tags.map(v => (typeof v === 'string' ? v : v.id));
 }
@@ -44,39 +44,42 @@ class Controller {
 
   getSearchFilter = () => {}
 
+  security = {}
+  validators = {}
   projections = {}
 
-  hooks = { 
-    expand: false,
-    reduce: false,
-  }
+  hooks = {}
 
   constructor(params) {
-    const { model, defaults, projections, getSearchFilter, hooks } = params;
+    const { model, security, validators, projections, getSearchFilter, hooks } = params;
     this.model = model || null;
-    this.defaults = defaults || { security: false, validators: {} };
+    this.security = security || { 
+      list: () => false,
+      view: () => false,
+      post: () => false,
+      put: () => false,
+      delete: () => false,
+     };
+    this.validators  = validators || {
+      post: () => new Promise.resolve(),
+      put: () => new Promise.resolve(),
+      putMany: () => new Promise.resolve(),
+      delete: () => new Promise.resolve(),
+      deleteMany: () => new Promise.resolve(),
+    };
     this.getSearchFilter = getSearchFilter || (() => {});
     this.projections = projections || {
       list: {},
       references: {},
       view: {},
     }
-    this.hooks = hooks || { normalise: false }
-  }
-
-  // get security definitions (access/permissions)
-  getSecurity = (res) => {
-    const { security } = res;
-    if (security === undefined) {
-      return this.defaults.security || {};
-    }
-    return security;
+    this.hooks = hooks || { expand: false, compact: false }
   }
 
   expandItem = (item) => {
     item = {
       id: item._id.toString(),
-      ...item.toObject()
+      ...(typeof item.toObject === 'function' ? item.toObject() : item)
     }
     delete item._id;
     if (typeof this.hooks?.expand === 'function') {
@@ -85,9 +88,9 @@ class Controller {
     return item;
   }
 
-  reduceItem = (item) => {
-    if (typeof this.hooks?.reduce === 'function') {
-      item = this.hooks.reduce(item);
+  compactItem = (item) => {
+    if (typeof this.hooks?.compact === 'function') {
+      item = this.hooks.compact(item);
     }
     return item;
   }
@@ -99,20 +102,22 @@ class Controller {
       defaults,
       getSearchFilter,
       projection,
-      getSecurity,
+      security,
       expandItem
     } = this;
 
     const { page, skip, limit } = reqPage(req);
     const sort = reqSort(req, defaults.sort || {_id: -1});
     const { filter } = req.query;
-    const securityFilter = getSecurity(res).list(req);
+    const user = req.userData || null;
+    const securityFilter = security.list({req, user});
     if (securityFilter === false) return res.status(403).send();
     const q = { 
       ...(getSearchFilter(req) || {}),
       ...(filter || {}),
       ...securityFilter 
     }
+    
     model.countDocuments(q)
       .then((total) => {
       res.data = res.data || {};
@@ -132,12 +137,14 @@ class Controller {
         res.data.items = items.map(v => expandItem(v));
         next();
       }).catch(err => sendError(res, err));
+
     }).catch(err => sendError(res, err));
   }
 
   getManyReference = (req, res, next) => {
-    const { model, projection } = this;
-    const q = getSecurity(res).list(req);
+    const { model, projection, security } = this;
+    const user = req.userData || null;
+    const q = security.list({req, user});
     if (q === false) return res.status(403).send();
     const { ids } = req.query;
     const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
@@ -153,7 +160,7 @@ class Controller {
       }).catch(err => sendError(res, err))
   }
 
-  createItem ({data, alter} = {}) {
+  createItem = ({data, alter} = {}) => {
     const {
       model,
       // projections,
@@ -173,30 +180,64 @@ class Controller {
   }
 
   create = (req, res, next) => {
-    const { createItem, getSecurity, expandItem, reduceItem, defaults } = this;
-    if(getSecurity(res).post(req) === false) {
+    const { createItem, security, validators, expandItem, compactItem } = this;
+    const user = req.userData || null;
+    if(security.post({req, user}) === false) {
+      console.error(new Error('Operation is not allowed'));
       return res.status(403).send();
     }
 
-    const validator = res.validators?.postSchema
-      || defaults.validators.post;
-    
-    const doValidate = validate(validator);
-    
-    const { body, alter } = req;
-    doValidate(req, res, () => {
-      console.log('Validated.....');
-      createItem({data: reduceItem(body), alter})
+    const validate = validators.post || (() => Promise.resolve(req.body));
+    validate({ data: req.body, req, user: req.userData || null }).then((data) => {
+      createItem({data: compactItem(data)})
         .then((item) => {
-          console.log('Created', item)
           res.data = {
             createdItem: expandItem(item) 
           }
           next();
         })
-        .catch(err => sendError(res, err));
+        .catch(err => {
+          console.error(err);
+          sendError(res, err);
+        })
+    })
+    .catch(err => {
+      console.error(err);
+      sendError(res, err);
     })
   }
+
+  update = (req, res, next) => {
+    const { model, security, validators, compactItem, expandItem } = this;
+    const user = req.userData || null;
+    const q = security.put({req, user});
+    if(q === false) {
+      console.error(new Error('Opration is not allowed'));
+      return res.status(403).send();
+    }
+    q._id = req.params?.id || false;
+    if (!q._id) {
+      console.error(new Error('ID expected'));
+      return res.status(403).send();
+    }
+    
+    const validate = validators.put || (() => Promise.resolve());
+    const ops = req.body.ops || {};
+
+    validate({ data: ops, req, user }).then((data) => {
+  
+      data = compactItem(data);
+      model.updateOne(q, { $set: data })
+        .exec()
+        .then((result) => {
+          data._id = q._id;
+          res.data = { result, ops: expandItem(data) };
+          next();
+        })
+        .catch(err => sendError(res, err));
+    });
+  }
+  
 }
 
-module.exports = { Controller, expand, reduce }
+module.exports = { Controller, expand, compact }

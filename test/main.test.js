@@ -34,12 +34,6 @@ describe('Crud Controller Builder test', () => {
     Adv.getList.should.be.Function();
   })
 
-  it('shall return security object', (done) => {
-    const { res } = express;
-    Adv.getSecurity(res).should.be.Object();
-    done();
-  })
-
   it('shall load the list', (done) => {
     const { req, res } = express;
     req.query = {
@@ -55,7 +49,7 @@ describe('Crud Controller Builder test', () => {
     });
   })
   
-  it('shall load the list', (done) => {
+  it('shall load filtered the list', (done) => {
     const { req, res } = express;
     req.query = {
       perPage: 10,
@@ -72,18 +66,58 @@ describe('Crud Controller Builder test', () => {
     });
   })
 
-  it.only('shall create new adventure', (done) => {
+  const newItem = {
+    name: 'New Item',
+    tags: [{id: "mooo"}, {id: "behehe"}]
+  }
+
+  it('shall validate correctly', (done) => {
+    Adv.validators.post({data: newItem, req: { body: newItem }}).then((rez) => {
+      rez.should.be.eql(newItem);
+      done();
+    }).catch(err => {
+      console.log(err);
+    })
+  })
+
+  it('shall create new adventure', (done) => {
     const { req, res } = express;
-    req.body = {
-      name: 'New Item',
-      tags: [{id: 'mooo'}, {id: 'behehe'}]
-    }
+    req.body = { ...newItem }; // create a new object since will be modified:
     req.allowPost = true;
     Adv.create(req, res, () => {
       res.state.should.be.eql(0);
       res.data.should.be.Object();
+      res.data.createdItem.should.be.Object();
+      res.data.createdItem.name.should.be.eql(newItem.name);
+      res.data.createdItem.tags.should.be.Array();
+      res.data.createdItem.tags.should.be.eql(newItem.tags);
+
       done();
     })
-      console.log('Response', res)
+  })
+
+  it.skip('shall throw an exeption', () => {
+    const { req, res } = express;
+    should(Adv.update(req, res)).throw('Operation is not allowed');
+  })
+
+  it('shall update an adventure', (done) => {
+    AdvModel.findOne({}, (err, item) => {
+      if(err) return console.error(err);
+      const { req, res } = express;
+      req.body = {
+        ops: { name: 'Maria' }
+      }
+      req.params = {
+        id: item._id.toString()
+      }
+      req.allowPut = true;
+      Adv.update(req, res, () => {
+        const i = res.data.ops;
+        i.id.should.be.eql(req.params.id);
+        i.name.should.be.eql(req.body.ops.name);
+        done();
+      })
+    })
   })
 })
