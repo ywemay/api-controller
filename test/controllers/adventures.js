@@ -15,22 +15,24 @@ const schema = yup.object().shape({
   )
 });
 
+const securityCheck = (allow) => {
+  return allow ? Promise.resolve({}) 
+    : Promise.reject(new Error('Insufficient permissions'));
+} 
+
 const Adv = new Controller({
   model,
   // moking security settings:
   security: {
-    list: ({req}) => (req.allowList ? {} : false),
-    view: ({req}) => (req.allowView ? {} : false),
-    post: ({req}) => (req.allowPost ? {} : false),
-    put: ({req}) => (req.allowPut ? {} : false),
-    delete: ({req}) => (req.allowDelete ? {} : false),
+    list: ({req}) => securityCheck(req.allowList),
+    view: ({req}) => securityCheck(req.allowView),
+    post: ({req}) => securityCheck(req.allowPost),
+    put: ({req}) => securityCheck(req.allowPut),
+    delete: ({req}) => securityCheck(req.allowDelete),
   },
   validators: {
     post: ({req, data}) => schema.validate(req.body || data),
-    put: ({req}) => {
-      const data = req.body?.ops || {};
-      return schema.pick(Object.keys(data)).validate(data);
-    }
+    put: ({data}) => schema.pick(Object.keys(data)).validate(data),
   },
   projections: {
     list: { name: true },
