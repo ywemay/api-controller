@@ -108,6 +108,19 @@ describe('Crud Controller Builder test', () => {
     });
   })
 
+  it('shall load one', (done) => {
+    AdvModel.findOne({}).then((item) => {
+      const { req, res } = expressMock(done);
+      req.params.id = item._id.toString();
+      req.allowView = true; //mock security filter returns true - access allowed
+      Adv.getOne(req, res, () => {
+        res.data.item.should.be.Object();
+        res.data.item.name.should.be.eql(item.name);
+        done();
+      })
+    }).catch(err => console.error(err));
+  })
+
   it('shall validate correctly', (done) => {
     Adv.validators.post({data: newItem, req: { body: newItem }}).then((rez) => {
       rez.should.be.eql(newItem);
@@ -183,7 +196,7 @@ describe('Crud Controller Builder test', () => {
       const { req, res } = expressMock(done);
       req.params = { id: item._id.toString() };
       req.allowDelete = true;
-      Adv.delete(req, res, () => {
+      Adv.deleteOne(req, res, () => {
         res.data.result.should.be.Object();
         res.data.result.deletedCount.should.be.eql(1);
         done();
@@ -191,7 +204,7 @@ describe('Crud Controller Builder test', () => {
     })
   })
   
-  it.only('shall delete many adventures', (done) => {
+  it('shall delete many adventures', (done) => {
     AdvModel.find({name: filter}).then(items => {
       const { req, res } = expressMock(done);
       req.query = { ids: items.map(v => v._id) };

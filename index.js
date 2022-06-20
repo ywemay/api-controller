@@ -1,29 +1,7 @@
 const mongoose = require('mongoose');
-const { reqPage, reqSort, keyFilter } = require("ywemay-api-utils");
+const { reqPage, reqSort } = require("ywemay-api-utils");
 const { sendError, sendData, notFound, sendForbidden } = require('ywemay-api-send');
-// const validate = require("ywemay-api-validate");
 const yup = require('yup');
-
-/*
-const validate =  (req, res, schema) => {
-  return new Promise((resolve, reject) => {
-    console.log(typeof schema)
-    const s = typeof schema === 'function' ? schema({req, res}) : schema;
-    if (s.schema !== undefined) {
-      const keys = Object.keys(req.body);
-      const unknownKeys = keys.filter(key => !s.keys.includes(key));
-      const keysSchema = yup.array(yup.string()
-        .oneOf(s.keys, 'Unknown keys: ' + unknownKeys.join(', ')));
-      s.schema.validate(req.body).then(() => {
-        keysSchema.validate(keys).then(() => resolve())
-      }).catch(err => {
-        console.error(err);
-        reject(); 
-      })
-    }
-    else s.validate(req.body).then(resolve()).catch(err => reject(err));
-  })
-}*/
 
 const expand = (tags) => {
   if (!tags) return [];
@@ -157,7 +135,20 @@ class Controller {
         res.data = data;
         next();
       }).catch(err => sendError(res, err));
-    }).catch(() => sendForbidden(res))
+    }).catch(() => sendForbidden(res));
+  }
+
+  getOne = (req, res, next) => {
+    const { model, projections, expandItem } = this;
+    this.checkSecurity({req, key: 'view'}).then(filter => {
+      const id = req.params.id || false;
+      if (!id) return res.status(500).send();
+      const q = { _id: id, ...(filter || {}) };
+      model.findOne(q).select(projections.view || undefined).then(item => {
+        res.data = { item: expandItem(item) }
+        next();
+      }).catch(err => sendError(res, err));
+    }).catch(() => sendForbidden(res));
   }
 
   getManyReference = (req, res, next) => {
@@ -185,10 +176,8 @@ class Controller {
   createItem = ({data, alter} = {}) => {
     const {
       model,
-      // projections,
     } = this;
     return new Promise((resolve, reject) =>{
-      //data = keyFilter(data, Object.keys(getAllowedKeys({contact: true})).join(' '));
       if (typeof alter === 'function') alter(data);
       const item = new model(data);
       item.save()
@@ -283,7 +272,7 @@ class Controller {
     }).catch(() => sendForbidden(res));
   }
 
-  delete = (req, res, next) => {
+  deleteOne = (req, res, next) => {
     const { model, checkSecurity } = this;
     checkSecurity({req, key: 'delete'}).then((q) => {
       q._id = req.params?.id || false;
