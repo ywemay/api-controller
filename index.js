@@ -84,7 +84,7 @@ class Controller {
       }
       const check = security[key];
       const user = req.userData || null;
-      check({req, user}).then(q => resolve({q})).catch(err => reject(err));
+      check({req, user}).then(q => resolve(q)).catch(err => reject(err));
     });
   }
 
