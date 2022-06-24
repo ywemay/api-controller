@@ -210,7 +210,7 @@ class Controller {
         console.error(err);
         sendError(res, err);
       })
-    }).catch(() => sendForbidden(res));
+    }).catch((err) => err ? sendError(res, err) : sendForbidden(res));
   }
 
   update = (req, res, next) => {
@@ -269,7 +269,7 @@ class Controller {
           })
           .catch(err => sendError(res, err));
       });
-    }).catch(() => sendForbidden(res));
+    }).catch((err) => err ? sendError(res, err) : sendForbidden(res));
   }
 
   deleteOne = (req, res, next) => {
@@ -281,7 +281,7 @@ class Controller {
         res.data = { result }
         next();
       }).catch(err => sendError(res, err));
-    })
+    }).catch(err => err ? sendError(res, err) : sendForbidden(res))
   }
 
   deleteMany = (req, res, next) => {
@@ -294,7 +294,7 @@ class Controller {
         res.data = { result }
         next();
       }).catch(err => sendError(res, err));
-    })
+    }).catch(err => err ? sendError(res, err) : sendForbidden(res));
   }
 }
 
