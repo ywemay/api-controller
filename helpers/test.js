@@ -17,7 +17,7 @@ class TestHelper {
     else throw new Error('Server variable required for tests');
   }
 
-  checkListItems = ({done, token = null, items, status = 200}) => {
+  checkListItems = ({done, token = null, items = [], cb = false, status = 200}) => {
     chai.request(this.server)
     .get(this.uri)
     .set({"x-token": token, ...headers})
@@ -27,10 +27,11 @@ class TestHelper {
         if (status === 200) {
           res.body.items.should.be.an('array');
           res.body.items[0].should.be.a('object');
-          if (products) {
+          if (Array.isArray(items)) {
             res.body.items.length.should.be.equal(items.length);
           }
         }
+        if (typeof cb === 'function') cb({res, done, items, status});
         done();
       }
       else {
@@ -48,8 +49,8 @@ class TestHelper {
         res.status.should.be.eq(status);
         if (status === 200) {
           res.body.item.should.be.an('object');
-          if (typeof cb === 'function') cb(res);
         }
+        if (typeof cb === 'function') cb({res, done, item, status});
         done();
       }
     })
@@ -66,8 +67,8 @@ class TestHelper {
         if (status === 200) {
           res.body.createdItem.should.be.an('object');
           res.body.createdItem._id.should.be.a('string');
-          if (typeof cb === 'function') cb(res);
         }
+        if (typeof cb === 'function') cb({res, done, item, status});
         done();
       }
     })
@@ -84,8 +85,8 @@ class TestHelper {
         if (status === 200) {
           res.body.ops.should.be.an('object');
           res.body.result.should.be.an('object');
-          if (typeof cb === 'function') cb(res);
         }
+        if (typeof cb === 'function') cb({res, done, item, status});
         done();
       }
     })
@@ -98,7 +99,7 @@ class TestHelper {
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
-        if (typeof cb === 'function') cb(res);
+        if (typeof cb === 'function') cb({res, done, item, status});
         done();
       }
     })

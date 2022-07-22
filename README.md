@@ -138,3 +138,46 @@ router.use(send);
 
 module.exports = router;
 ```
+
+## Test Helper
+
+```js
+// test/requests/contacts.js
+const TestHelper = require("ywemay-api-controller/helpers/test");
+const server = require("../../src/index");
+
+const Requests = new TestHelper({ server, uri: "/contacts" });
+
+module.exports = Requests;
+```
+
+```js
+// test/routes/contacts.test.js
+const {
+  checkListItems,
+  checkGetItem,
+  checkCreateItem,
+  checkModifyItem,
+  checkDeleteItem,
+} = require("../requests/contacts");
+
+describe("Contacts", () => {
+  it("should load contact list", (done) =>
+    checkListItems({
+      token,
+      done,
+      items,
+      status, // defaults to 200
+    }));
+
+  it("should load one item", (done) =>
+    checkGetItem({
+      done,
+      token,
+      item, // shall contain item._id
+      status, // defaults to 200
+    }));
+
+  // ... Create, Modify and Delete have the same parameters as checkGetItem
+});
+```
