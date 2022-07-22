@@ -1,5 +1,5 @@
 {
-  "name": "ywemay-api-crud",
+  "name": "ywemay-api-controller",
   "version": "0.0.1",
   "description": "Functions to build crud operations for controllers",
   "main": "index.js",
