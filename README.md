@@ -122,3 +122,19 @@ router.use(send);
 
 module.exports = router;
 ```
+
+Or, shorter version:
+
+```js
+const { setRoutes } = require("../controllers/example");
+const router = require("express").Router();
+const { checkAuth, send } = require("ywemay-api-user");
+
+router.use(checkAuth);
+
+setRoutes(router);
+
+router.use(send);
+
+module.exports = router;
+```

@@ -146,11 +146,6 @@ describe('Crud Controller Builder test', () => {
     })
   })
 
-  it.skip('shall throw an exeption', () => {
-    const { req, res } = express;
-    should(Adv.update(req, res)).throw('Operation is not allowed');
-  })
-
   it('shall update an adventure', (done) => {
     AdvModel.findOne({}, (err, item) => {
       if(err) return console.error(err);

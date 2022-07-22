@@ -84,7 +84,7 @@ class Controller {
       }
       const check = security[key];
       const user = req.userData || null;
-      check({req, user}).then(q => resolve({q})).catch(err => reject(err));
+      check({req, user}).then(q => resolve(q)).catch(err => reject(err));
     });
   }
 
@@ -210,7 +210,7 @@ class Controller {
         console.error(err);
         sendError(res, err);
       })
-    }).catch(() => sendForbidden(res));
+    }).catch((err) => err ? sendError(res, err) : sendForbidden(res));
   }
 
   update = (req, res, next) => {
@@ -269,7 +269,7 @@ class Controller {
           })
           .catch(err => sendError(res, err));
       });
-    }).catch(() => sendForbidden(res));
+    }).catch((err) => err ? sendError(res, err) : sendForbidden(res));
   }
 
   deleteOne = (req, res, next) => {
@@ -281,7 +281,7 @@ class Controller {
         res.data = { result }
         next();
       }).catch(err => sendError(res, err));
-    })
+    }).catch(err => err ? sendError(res, err) : sendForbidden(res))
   }
 
   deleteMany = (req, res, next) => {
@@ -294,8 +294,19 @@ class Controller {
         res.data = { result }
         next();
       }).catch(err => sendError(res, err));
-    })
+    }).catch(err => err ? sendError(res, err) : sendForbidden(res));
   }
+
+  setRoutes = (router) => {
+    router.get("/", this.getList);
+    router.get("/id/:id", this.getOne);
+    router.get("/ref", this.getManyReference);
+    router.post("/", this.create);
+    router.put("/", this.updateMany);
+    router.put("/id/:id", this.update);
+    router.delete("/", this.deleteMany);
+    router.delete("/id/:id", this.deleteOne);
+  } 
 }
 
 module.exports = { Controller, expand, compact }
