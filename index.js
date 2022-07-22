@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const { reqPage, reqSort } = require("ywemay-api-utils");
-const { sendError, sendData, notFound, sendForbidden } = require('ywemay-api-send');
-const yup = require('yup');
+const { sendError, sendForbidden } = require('ywemay-api-send');
 
 const expand = (tags) => {
   if (!tags) return [];
