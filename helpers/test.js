@@ -39,8 +39,9 @@ class TestHelper {
       }
     })
   }
+
   checkGetItem = ({done, token = null, item, cb = false, status = 200}) => {
-    const url = this.uri + '/' + item._id.toString();
+    const url = this.uri + '/id/' + item._id.toString();
     chai.request(this.server)
     .get(url)
     .set({"x-token": token, ...this.headers})
@@ -76,9 +77,30 @@ class TestHelper {
 
   checkModifyItem = ({done, token = null, item, cb = false, status = 200}) => {
     chai.request(this.server)
-    .put(this.uri + '/' + item._id.toString())
+    .put(this.uri + '/id/' + item._id.toString())
     .set({"x-token": token, ...this.headers})
     .send({ops: {published: true, title: 'Modified Product'}})
+    .end((err, res) => {
+      if (!err) {
+        res.status.should.be.eq(status);
+        if (status === 200) {
+          res.body.ops.should.be.an('object');
+          res.body.result.should.be.an('object');
+        }
+        if (typeof cb === 'function') cb({res, done, item, status});
+        done();
+      }
+    })
+  }
+  
+  checkModifyItems = ({done, token = null, items, cb = false, status = 200}) => {
+    chai.request(this.server)
+    .put(this.uri)
+    .set({"x-token": token, ...this.headers})
+    .send({
+      ids: items.map(v => v._id.toString()),
+      ops: {published: true, title: 'Modified Product'}
+    })
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
@@ -94,8 +116,22 @@ class TestHelper {
 
   checkDeleteItem = ({done, item, token = null, cb = false, status = 200}) => {
     chai.request(this.server)
-    .delete(this.uri + '/' + item._id.toString())
+    .delete(this.uri + '/id/' + item._id.toString())
     .set({"x-token": token, ...this.headers})
+    .end((err, res) => {
+      if (!err) {
+        res.status.should.be.eq(status);
+        if (typeof cb === 'function') cb({res, done, item, status});
+        done();
+      }
+    })
+  }
+  
+  checkDeleteItems = ({done, items, token = null, cb = false, status = 200}) => {
+    chai.request(this.server)
+    .delete(this.uri)
+    .set({"x-token": token, ...this.headers})
+    .send({ids: items.map(v => v._id.toString())})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
