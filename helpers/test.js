@@ -126,10 +126,11 @@ class TestHelper {
   }
   
   checkDeleteItems = ({done, items, token = null, cb = false, status = 200}) => {
+    const ids = items.map(v => v._id.toString());
     chai.request(this.server)
     .delete(this.uri)
     .set({"x-token": token, ...this.headers})
-    .query({ids: items.map(v => v._id.toString())})
+    .query({ids})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
