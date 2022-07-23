@@ -108,7 +108,7 @@ class TestHelper {
           res.body.ops.should.be.an('object');
           res.body.result.should.be.an('object');
         }
-        if (typeof cb === 'function') cb({res, done, item, status});
+        if (typeof cb === 'function') cb({res, done, items, status});
         done();
       }
     })
@@ -135,7 +135,7 @@ class TestHelper {
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
-        if (typeof cb === 'function') cb({res, done, item, status});
+        if (typeof cb === 'function') cb({res, done, items, status});
         done();
       }
     })

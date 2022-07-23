@@ -1,6 +1,6 @@
 {
   "name": "ywemay-api-controller",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Functions to build crud operations for controllers",
   "main": "index.js",
   "scripts": {
