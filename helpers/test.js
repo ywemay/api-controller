@@ -129,13 +129,14 @@ class TestHelper {
     chai.request(this.server)
     .delete(this.uri)
     .set({"x-token": token, ...this.headers})
-    .send({ids: items.map(v => v._id.toString())})
+    .query({ids: items.map(v => v._id.toString())})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
         if (typeof cb === 'function') cb({res, done, items, status});
         done();
       }
+      else console.error(err);
     })
   }
 }
