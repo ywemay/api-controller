@@ -20,7 +20,7 @@ class TestHelper {
   checkListItems = ({done, token = null, items = [], cb = false, status = 200}) => {
     chai.request(this.server)
     .get(this.uri)
-    .set({"x-token": token, ...headers})
+    .set({"x-token": token, ...this.headers})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
@@ -43,7 +43,7 @@ class TestHelper {
     const url = this.uri + '/' + item._id.toString();
     chai.request(this.server)
     .get(url)
-    .set({"x-token": token, ...headers})
+    .set({"x-token": token, ...this.headers})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
@@ -59,7 +59,7 @@ class TestHelper {
   checkCreateItem = ({done, token = null, item, cb = false,  status = 200}) => {
     chai.request(this.server)
     .post(this.uri)
-    .set({"x-token": token, ...headers})
+    .set({"x-token": token, ...this.headers})
     .send(item)
     .end((err, res) => {
       if (!err) {
@@ -77,7 +77,7 @@ class TestHelper {
   checkModifyItem = ({done, token = null, item, cb = false, status = 200}) => {
     chai.request(this.server)
     .put(this.uri + '/' + item._id.toString())
-    .set({"x-token": token, ...headers})
+    .set({"x-token": token, ...this.headers})
     .send({ops: {published: true, title: 'Modified Product'}})
     .end((err, res) => {
       if (!err) {
@@ -95,7 +95,7 @@ class TestHelper {
   checkDeleteItem = ({done, item, token = null, cb = false, status = 200}) => {
     chai.request(this.server)
     .delete(this.uri + '/' + item._id.toString())
-    .set({"x-token": token, ...headers})
+    .set({"x-token": token, ...this.headers})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
