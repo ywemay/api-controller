@@ -75,11 +75,11 @@ class TestHelper {
     })
   }
 
-  checkModifyItem = ({done, token = null, item, cb = false, status = 200}) => {
+  checkModifyItem = ({done, token = null, item, ops = {}, cb = false, status = 200}) => {
     chai.request(this.server)
     .put(this.uri + '/id/' + item._id.toString())
     .set({"x-token": token, ...this.headers})
-    .send({ops: {published: true, title: 'Modified Product'}})
+    .send({ops})
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
@@ -93,14 +93,12 @@ class TestHelper {
     })
   }
   
-  checkModifyItems = ({done, token = null, items, cb = false, status = 200}) => {
+  checkModifyItems = ({done, token = null, items, ops = {}, cb = false, status = 200}) => {
+    const ids = items.map(v => v._id.toString());
     chai.request(this.server)
     .put(this.uri)
     .set({"x-token": token, ...this.headers})
-    .send({
-      ids: items.map(v => v._id.toString()),
-      ops: {published: true, title: 'Modified Product'}
-    })
+    .send({ ids, ops })
     .end((err, res) => {
       if (!err) {
         res.status.should.be.eq(status);
